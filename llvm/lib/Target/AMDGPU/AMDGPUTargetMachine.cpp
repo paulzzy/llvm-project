@@ -102,6 +102,7 @@
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/FormatVariadic.h"
+#include "llvm/TargetParser/AMDGPUTargetParser.h"
 #include "llvm/Transforms/HipStdPar/HipStdPar.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/IPO/AlwaysInliner.h"
@@ -843,10 +844,50 @@ static MachineSchedRegistry GCNILPSchedRegistry(
     "Run GCN iterative scheduler for ILP scheduling (experimental)",
     createIterativeILPMachineScheduler);
 
+static const StringLiteral AMDGPUSubtargetNames[Triple::LastAMDGPUSubArch -
+                                                Triple::FirstAMDGPUSubArch +
+                                                1] = {
+    "gfx600", // FIXME: Generic target
+    "gfx600", "gfx601", "gfx602",
+
+    "gfx700", // FIXME: Generic target
+    "gfx700", "gfx701", "gfx702", "gfx703", "gfx704", "gfx705",
+
+    "gfx801", // FIXME: Generic target
+    "gfx801", "gfx802", "gfx803", "gfx805",
+
+    "gfx810",
+
+    "gfx9-generic", "gfx900", "gfx902", "gfx904", "gfx906", "gfx909", "gfx90c",
+
+    "gfx908", "gfx90a",
+
+    "gfx9-4-generic", "gfx942", "gfx950",
+
+    "gfx10-1-generic", "gfx1010", "gfx1011", "gfx1012", "gfx1013",
+
+    "gfx10-3-generic", "gfx1030", "gfx1031", "gfx1032", "gfx1033", "gfx1034",
+    "gfx1035", "gfx1036",
+
+    "gfx11-generic", "gfx1100", "gfx1101", "gfx1102", "gfx1103", "gfx1150",
+    "gfx1151", "gfx1152", "gfx1153", "gfx1154",
+
+    "gfx1170", // FIXME: Generic target
+    "gfx1170", "gfx1171", "gfx1172",
+
+    "gfx12-generic", "gfx1200", "gfx1201", "gfx12-5-generic", "gfx1250",
+    "gfx1251", "gfx1310", // FIXME: Generic
+                          // target
+    "gfx1310"};
+
 LLVM_READNONE
 static StringRef getGPUOrDefault(const Triple &TT, StringRef GPU) {
   if (!GPU.empty())
     return GPU;
+
+  if (TT.getSubArch() >= Triple::FirstAMDGPUSubArch &&
+      TT.getSubArch() <= Triple::LastAMDGPUSubArch)
+    return AMDGPUSubtargetNames[TT.getSubArch() - Triple::FirstAMDGPUSubArch];
 
   // Need to default to a target with flat support for HSA.
   if (TT.isAMDGCN())
@@ -874,6 +915,24 @@ AMDGPUTargetMachine::AMDGPUTargetMachine(const Target &T, const Triple &TT,
       TLOF(createTLOF(getTargetTriple())) {
   initAsmInfo();
   if (TT.isAMDGCN()) {
+    // Triple is missing a representation for non-empty, but unrecognized
+    // subarches. Only permit no subarch for any subtarget if it was really
+    // empty.
+    bool IsUnknownSubArch =
+        TT.getSubArch() == Triple::NoSubArch && TT.getArchName().size() != 6;
+    if (IsUnknownSubArch)
+      reportFatalUsageError("unknown subarch " + TT.getArchName());
+
+    if (TT.getSubArch() != Triple::NoSubArch) {
+      AMDGPU::GPUKind Kind = AMDGPU::parseArchAMDGCN(CPU);
+      Triple::SubArchType GPUSubArch = AMDGPU::getSubArch(Kind);
+      if (Kind != AMDGPU::GK_NONE && GPUSubArch != TT.getSubArch() &&
+          TT.getSubArch() != AMDGPU::getMajorSubArch(GPUSubArch)) {
+        reportFatalUsageError("invalid cpu '" + CPU + "' for subarch " +
+                              TT.getArchName());
+      }
+    }
+
     if (getMCSubtargetInfo().checkFeatures("+wavefrontsize64"))
       MRI.reset(llvm::createGCNMCRegisterInfo(AMDGPUDwarfFlavour::Wave64));
     else if (getMCSubtargetInfo().checkFeatures("+wavefrontsize32"))
@@ -1297,6 +1356,28 @@ GCNTargetMachine::getSubtargetImpl(const Function &F) const {
 
   auto &I = SubtargetMap[SubtargetKey];
   if (!I) {
+    AMDGPU::GPUKind Kind = AMDGPU::parseArchAMDGCN(GPU);
+    Triple::SubArchType GPUSubArch = AMDGPU::getSubArch(Kind);
+
+    // Enforce the subtarget is covered by the subarch. Tolerate no subarch for
+    // legacy compatibility.
+    const Triple &TT = getTargetTriple();
+    if (GPUSubArch != TT.getSubArch()) {
+      // Check if this is a generic subarch which has subtargets. Ignore
+      // unknown subtargets with a known subarch, since for whatever reason
+      // the convention is to just print a warning and ignore unrecognized
+      // subtargets.
+      if (Kind != AMDGPU::GK_NONE &&
+          TT.getSubArch() != AMDGPU::getMajorSubArch(GPUSubArch)) {
+        bool IsLegacyEmptySubArch = TT.getSubArch() == Triple::NoSubArch;
+        if (!IsLegacyEmptySubArch &&
+            AMDGPU::getMajorSubArch(GPUSubArch) != TT.getSubArch()) {
+          F.getContext().emitError("invalid subtarget '" + Twine(GPU) +
+                                   "' for subarch " + TT.getArchName());
+        }
+      }
+    }
+
     I = std::make_unique<GCNSubtarget>(TargetTriple, GPU, FS, *this, BufRelaxed,
                                        TBufRelaxed);
   }

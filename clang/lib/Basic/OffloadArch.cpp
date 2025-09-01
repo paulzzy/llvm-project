@@ -171,8 +171,7 @@ llvm::Triple OffloadArchToTriple(const llvm::Triple &DefaultToolchainTriple,
   }
 
   if (IsAMDOffloadArch(ID))
-    return llvm::Triple(llvm::Triple::amdgcn, llvm::Triple::NoSubArch,
-                        llvm::Triple::AMD, llvm::Triple::AMDHSA);
+    return llvm::Triple("amdgcn-amd-amdhsa");
 
   return {};
 }
