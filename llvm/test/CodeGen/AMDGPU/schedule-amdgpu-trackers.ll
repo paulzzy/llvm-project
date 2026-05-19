@@ -1,11 +1,11 @@
-; RUN: llc -mtriple=amdgcn--amdpal -mcpu=gfx1100 -verify-misched < %s | FileCheck --check-prefixes=GFX11-PAL %s
-; RUN: llc -mtriple=amdgcn--amdpal -mcpu=gfx1100 -amdgpu-use-amdgpu-trackers=1 -verify-misched < %s | FileCheck --check-prefixes=GFX11-PAL-GCNTRACKERS %s
-; RUN: llc -mtriple=amdgcn -mcpu=tonga -amdgpu-scalarize-global-loads=false -verify-misched < %s | FileCheck --check-prefixes=TONGA %s
-; RUN: llc -mtriple=amdgcn -mcpu=tonga -amdgpu-scalarize-global-loads=false -amdgpu-use-amdgpu-trackers=1 -verify-misched < %s | FileCheck --check-prefixes=TONGA-GCNTRACKERS %s
-; RUN: llc -mtriple=amdgcn -mcpu=gfx908 -verify-misched < %s | FileCheck --check-prefixes=GFX908 %s
-; RUN: llc -mtriple=amdgcn -mcpu=gfx908 -amdgpu-use-amdgpu-trackers=1 -verify-misched < %s | FileCheck --check-prefixes=GFX908-GCNTRACKERS %s
-; RUN: llc -mtriple=amdgcn -verify-misched < %s | FileCheck --check-prefixes=GENERIC %s
-; RUN: llc -mtriple=amdgcn -amdgpu-use-amdgpu-trackers=1 -verify-misched < %s | FileCheck --check-prefixes=GENERIC-GCNTRACKERS %s
+; RUN: llc -amdgpu-late-wave-transform=1 -mtriple=amdgcn--amdpal -mcpu=gfx1100 -verify-misched < %s | FileCheck --check-prefixes=GFX11-PAL %s
+; RUN: llc -amdgpu-late-wave-transform=1 -mtriple=amdgcn--amdpal -mcpu=gfx1100 -amdgpu-use-amdgpu-trackers=1 -verify-misched < %s | FileCheck --check-prefixes=GFX11-PAL-GCNTRACKERS %s
+; RUN: llc -amdgpu-late-wave-transform=1 -mtriple=amdgcn -mcpu=tonga -amdgpu-scalarize-global-loads=false -verify-misched < %s | FileCheck --check-prefixes=TONGA %s
+; RUN: llc -amdgpu-late-wave-transform=1 -mtriple=amdgcn -mcpu=tonga -amdgpu-scalarize-global-loads=false -amdgpu-use-amdgpu-trackers=1 -verify-misched < %s | FileCheck --check-prefixes=TONGA-GCNTRACKERS %s
+; RUN: llc -amdgpu-late-wave-transform=1 -mtriple=amdgcn -mcpu=gfx908 -verify-misched < %s | FileCheck --check-prefixes=GFX908 %s
+; RUN: llc -amdgpu-late-wave-transform=1 -mtriple=amdgcn -mcpu=gfx908 -amdgpu-use-amdgpu-trackers=1 -verify-misched < %s | FileCheck --check-prefixes=GFX908-GCNTRACKERS %s
+; RUN: llc -amdgpu-late-wave-transform=1 -mtriple=amdgcn -verify-misched < %s | FileCheck --check-prefixes=GENERIC %s
+; RUN: llc -amdgpu-late-wave-transform=1 -mtriple=amdgcn -amdgpu-use-amdgpu-trackers=1 -verify-misched < %s | FileCheck --check-prefixes=GENERIC-GCNTRACKERS %s
 
 ; GCN Trackers are sensitive to minor changes in RP, and will avoid scheduling certain instructions, which, if scheduled,
 ; allow scheduling of other instructions which reduce RP
@@ -13,18 +13,18 @@
 ; CHECK-LABEL: {{^}}return_72xi32:
 ; GFX11-PAL:    NumSgprs: 33
 ; GFX11-PAL-GCNTRACKERS:    NumSgprs: 33
-; GFX11-PAL:    NumVgprs: 64
-; GFX11-PAL-GCNTRACKERS:    NumVgprs: 64
-; GFX11-PAL:    ScratchSize: 220
+; GFX11-PAL:    NumVgprs: 60
+; GFX11-PAL-GCNTRACKERS:    NumVgprs: 60
+; GFX11-PAL:    ScratchSize: 232
 ; GFX11-PAL-GCNTRACKERS:    ScratchSize: 248
 
 
 ; CHECK-LABEL: {{^}}call_72xi32:
 ; GFX11-PAL:    NumSgprs: 40
 ; GFX11-PAL-GCNTRACKERS:    NumSgprs: 37
-; GFX11-PAL:    NumVgprs: 64
-; GFX11-PAL-GCNTRACKERS:    NumVgprs: 64
-; GFX11-PAL:    ScratchSize: 2780
+; GFX11-PAL:    NumVgprs: 63
+; GFX11-PAL-GCNTRACKERS:    NumVgprs: 62
+; GFX11-PAL:    ScratchSize: 2792
 ; GFX11-PAL-GCNTRACKERS:    ScratchSize: 2808
 
 
@@ -58,7 +58,7 @@ define amdgpu_kernel void @global_extload_v16f16_to_v16f64(ptr addrspace(1) %out
 }
 
 ; CHECK-LABEL: {{^}}constant_zextload_v64i16_to_v64i32:
-; GENERIC:    NumSgprs: 71
+; GENERIC:    NumSgprs: 70
 ; GENERIC-GCNTRACKERS:    NumSgprs: 45
 ; GENERIC:    NumVgprs: 20
 ; GENERIC-GCNTRACKERS:    NumVgprs: 20
