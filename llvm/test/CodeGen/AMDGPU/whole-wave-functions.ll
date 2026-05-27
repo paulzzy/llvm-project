@@ -949,15 +949,7 @@ define amdgpu_gfx_whole_wave i32 @multiple_blocks(i1 %active, i32 %a, i32 %b) {
 ; DAGISEL-NEXT:    s_cbranch_execz .LBB7_2
 ; DAGISEL-NEXT:  .LBB7_1: ; %if.then
 ; DAGISEL-NEXT:    v_add_nc_u32_e32 v1, v0, v1
-; DAGISEL-NEXT:  .LBB7_2:
-; DAGISEL-NEXT:    s_wait_alu depctr_sa_sdst(0)
-; DAGISEL-NEXT:    s_or_b32 exec_lo, exec_lo, s1
-; DAGISEL-NEXT:    s_delay_alu instid0(SALU_CYCLE_1)
-; DAGISEL-NEXT:    s_xor_b32 s1, exec_lo, vcc_lo
-; DAGISEL-NEXT:    s_wait_alu depctr_sa_sdst(0)
-; DAGISEL-NEXT:    s_and_b32 s1, s1, exec_lo
-; DAGISEL-NEXT:    s_mov_b32 exec_lo, vcc_lo
-; DAGISEL-NEXT:    ; divergent control-flow edge
+; DAGISEL-NEXT:  .LBB7_2: ; %if.end
 ; DAGISEL-NEXT:    s_wait_alu depctr_sa_sdst(0)
 ; DAGISEL-NEXT:    s_or_b32 exec_lo, exec_lo, s1
 ; DAGISEL-NEXT:    v_cmp_ne_u32_e32 vcc_lo, 0, v2
@@ -1029,15 +1021,7 @@ define amdgpu_gfx_whole_wave i32 @multiple_blocks(i1 %active, i32 %a, i32 %b) {
 ; DAGISEL64-NEXT:    s_cbranch_execz .LBB7_2
 ; DAGISEL64-NEXT:  .LBB7_1: ; %if.then
 ; DAGISEL64-NEXT:    v_add_nc_u32_e32 v1, v0, v1
-; DAGISEL64-NEXT:  .LBB7_2:
-; DAGISEL64-NEXT:    s_wait_alu depctr_sa_sdst(0)
-; DAGISEL64-NEXT:    s_or_b64 exec, exec, s[2:3]
-; DAGISEL64-NEXT:    s_delay_alu instid0(SALU_CYCLE_1)
-; DAGISEL64-NEXT:    s_xor_b64 s[2:3], exec, vcc
-; DAGISEL64-NEXT:    s_wait_alu depctr_sa_sdst(0)
-; DAGISEL64-NEXT:    s_and_b64 s[2:3], s[2:3], exec
-; DAGISEL64-NEXT:    s_mov_b64 exec, vcc
-; DAGISEL64-NEXT:    ; divergent control-flow edge
+; DAGISEL64-NEXT:  .LBB7_2: ; %if.end
 ; DAGISEL64-NEXT:    s_wait_alu depctr_sa_sdst(0)
 ; DAGISEL64-NEXT:    s_or_b64 exec, exec, s[2:3]
 ; DAGISEL64-NEXT:    v_cmp_ne_u32_e32 vcc, 0, v2
@@ -1106,16 +1090,10 @@ define amdgpu_gfx_whole_wave i32 @multiple_blocks(i1 %active, i32 %a, i32 %b) {
 ; GFX1250-DAGISEL-NEXT:    s_cbranch_execz .LBB7_2
 ; GFX1250-DAGISEL-NEXT:  .LBB7_1: ; %if.then
 ; GFX1250-DAGISEL-NEXT:    v_add_nc_u32_e32 v1, v0, v1
-; GFX1250-DAGISEL-NEXT:  .LBB7_2:
-; GFX1250-DAGISEL-NEXT:    s_or_b32 exec_lo, exec_lo, s1
-; GFX1250-DAGISEL-NEXT:    s_delay_alu instid0(SALU_CYCLE_1) | instskip(NEXT) | instid1(SALU_CYCLE_1)
-; GFX1250-DAGISEL-NEXT:    s_xor_b32 s1, exec_lo, vcc_lo
-; GFX1250-DAGISEL-NEXT:    s_and_b32 s1, s1, exec_lo
-; GFX1250-DAGISEL-NEXT:    s_mov_b32 exec_lo, vcc_lo
-; GFX1250-DAGISEL-NEXT:    ; divergent control-flow edge
-; GFX1250-DAGISEL-NEXT:    s_delay_alu instid0(SALU_CYCLE_1)
+; GFX1250-DAGISEL-NEXT:  .LBB7_2: ; %if.end
 ; GFX1250-DAGISEL-NEXT:    s_or_b32 exec_lo, exec_lo, s1
 ; GFX1250-DAGISEL-NEXT:    v_cmp_ne_u32_e32 vcc_lo, 0, v2
+; GFX1250-DAGISEL-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX1250-DAGISEL-NEXT:    v_cndmask_b32_e32 v0, v1, v0, vcc_lo
 ; GFX1250-DAGISEL-NEXT:    s_xor_b32 exec_lo, s0, -1
 ; GFX1250-DAGISEL-NEXT:    s_clause 0x2 ; 12-byte Folded Reload
