@@ -5510,9 +5510,8 @@ define amdgpu_kernel void @extract_vgpr_offset_multiple_in_block(ptr addrspace(1
 ; NOOPT-NEXT:    v_cmp_eq_u32_e64 s[4:5], v0, s4
 ; NOOPT-NEXT:    s_mov_b64 s[6:7], -1
 ; NOOPT-NEXT:    s_xor_b64 s[4:5], s[4:5], s[6:7]
-; NOOPT-NEXT:    s_and_b64 s[6:7], exec, s[4:5]
-; NOOPT-NEXT:    s_xor_b64 s[4:5], s[4:5], -1
-; NOOPT-NEXT:    s_and_b64 s[4:5], s[4:5], exec
+; NOOPT-NEXT:    s_and_b64 s[4:5], exec, s[4:5]
+; NOOPT-NEXT:    s_xor_b64 s[4:5], s[4:5], exec
 ; NOOPT-NEXT:    s_or_b64 s[0:1], s[0:1], s[4:5]
 ; NOOPT-NEXT:    v_writelane_b32 v18, s0, 23
 ; NOOPT-NEXT:    v_writelane_b32 v18, s1, 24
@@ -6396,9 +6395,8 @@ define amdgpu_kernel void @insert_vgpr_offset_multiple_in_block(ptr addrspace(1)
 ; NOOPT-NEXT:    v_cmp_eq_u32_e64 s[4:5], v0, s4
 ; NOOPT-NEXT:    s_mov_b64 s[6:7], -1
 ; NOOPT-NEXT:    s_xor_b64 s[4:5], s[4:5], s[6:7]
-; NOOPT-NEXT:    s_and_b64 s[6:7], exec, s[4:5]
-; NOOPT-NEXT:    s_xor_b64 s[4:5], s[4:5], -1
-; NOOPT-NEXT:    s_and_b64 s[4:5], s[4:5], exec
+; NOOPT-NEXT:    s_and_b64 s[4:5], exec, s[4:5]
+; NOOPT-NEXT:    s_xor_b64 s[4:5], s[4:5], exec
 ; NOOPT-NEXT:    s_or_b64 s[0:1], s[0:1], s[4:5]
 ; NOOPT-NEXT:    v_writelane_b32 v32, s0, 11
 ; NOOPT-NEXT:    v_writelane_b32 v32, s1, 12
