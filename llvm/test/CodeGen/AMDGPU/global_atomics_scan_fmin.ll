@@ -4561,6 +4561,7 @@ define amdgpu_kernel void @global_atomic_fmin_double_uni_address_div_value_agent
 ; GFX7LESS-DPP-NEXT:    v_max_f64 v[4:5], v[0:1], v[0:1]
 ; GFX7LESS-DPP-NEXT:    s_mov_b64 s[0:1], -1
 ; GFX7LESS-DPP-NEXT:    s_mov_b64 s[0:1], 0
+; GFX7LESS-DPP-NEXT:    ; implicit-def: $vgpr0_vgpr1
 ; GFX7LESS-DPP-NEXT:  .LBB7_1: ; %atomicrmw.start
 ; GFX7LESS-DPP-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX7LESS-DPP-NEXT:    s_waitcnt vmcnt(0)
@@ -6025,6 +6026,7 @@ define amdgpu_kernel void @global_atomic_fmin_double_uni_address_div_value_one_a
 ; GFX7LESS-DPP-NEXT:    v_max_f64 v[4:5], v[0:1], v[0:1]
 ; GFX7LESS-DPP-NEXT:    s_mov_b64 s[0:1], -1
 ; GFX7LESS-DPP-NEXT:    s_mov_b64 s[0:1], 0
+; GFX7LESS-DPP-NEXT:    ; implicit-def: $vgpr0_vgpr1
 ; GFX7LESS-DPP-NEXT:  .LBB9_1: ; %atomicrmw.start
 ; GFX7LESS-DPP-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX7LESS-DPP-NEXT:    s_waitcnt vmcnt(0)
@@ -7489,6 +7491,7 @@ define amdgpu_kernel void @global_atomic_fmin_double_uni_address_div_value_defau
 ; GFX7LESS-DPP-NEXT:    v_max_f64 v[4:5], v[0:1], v[0:1]
 ; GFX7LESS-DPP-NEXT:    s_mov_b64 s[0:1], -1
 ; GFX7LESS-DPP-NEXT:    s_mov_b64 s[0:1], 0
+; GFX7LESS-DPP-NEXT:    ; implicit-def: $vgpr0_vgpr1
 ; GFX7LESS-DPP-NEXT:  .LBB11_1: ; %atomicrmw.start
 ; GFX7LESS-DPP-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX7LESS-DPP-NEXT:    s_waitcnt vmcnt(0)
