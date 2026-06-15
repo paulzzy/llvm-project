@@ -9467,7 +9467,6 @@ define amdgpu_kernel void @atomic_sub_i16_soffset__amdgpu_no_remote_memory(ptr a
 ; SI-NEXT:    s_lshl_b32 s8, s4, s5
 ; SI-NEXT:    s_waitcnt lgkmcnt(0)
 ; SI-NEXT:    v_mov_b32_e32 v1, s9
-; SI-NEXT:    s_mov_b64 s[4:5], -1
 ; SI-NEXT:    s_mov_b64 s[4:5], 0
 ; SI-NEXT:  .LBB136_1: ; %atomicrmw.start
 ; SI-NEXT:    ; =>This Inner Loop Header: Depth=1
@@ -9506,11 +9505,10 @@ define amdgpu_kernel void @atomic_sub_i16_soffset__amdgpu_no_remote_memory(ptr a
 ; VI-NEXT:    s_lshl_b32 s3, s3, 3
 ; VI-NEXT:    s_lshl_b32 s6, 0xffff, s3
 ; VI-NEXT:    s_and_b32 s2, s2, 0xffff
-; VI-NEXT:    s_waitcnt lgkmcnt(0)
-; VI-NEXT:    v_mov_b32_e32 v1, s4
-; VI-NEXT:    s_mov_b64 s[4:5], -1
 ; VI-NEXT:    s_not_b32 s7, s6
 ; VI-NEXT:    s_lshl_b32 s8, s2, s3
+; VI-NEXT:    s_waitcnt lgkmcnt(0)
+; VI-NEXT:    v_mov_b32_e32 v1, s4
 ; VI-NEXT:    s_mov_b32 s3, 0xf000
 ; VI-NEXT:    s_mov_b32 s2, -1
 ; VI-NEXT:    s_mov_b64 s[4:5], 0
@@ -9549,11 +9547,10 @@ define amdgpu_kernel void @atomic_sub_i16_soffset__amdgpu_no_remote_memory(ptr a
 ; GFX9-NEXT:    s_load_dword s7, s[0:1], 0x0
 ; GFX9-NEXT:    s_and_b32 s3, s3, 3
 ; GFX9-NEXT:    s_lshl_b32 s3, s3, 3
-; GFX9-NEXT:    s_and_b32 s2, s2, 0xffff
 ; GFX9-NEXT:    s_lshl_b32 s4, 0xffff, s3
-; GFX9-NEXT:    s_lshl_b32 s6, s2, s3
-; GFX9-NEXT:    s_mov_b64 s[2:3], -1
+; GFX9-NEXT:    s_and_b32 s2, s2, 0xffff
 ; GFX9-NEXT:    s_not_b32 s5, s4
+; GFX9-NEXT:    s_lshl_b32 s6, s2, s3
 ; GFX9-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX9-NEXT:    v_mov_b32_e32 v1, s7
 ; GFX9-NEXT:    s_mov_b64 s[2:3], 0
@@ -9597,7 +9594,6 @@ define amdgpu_kernel void @atomic_sub_i16_soffset__amdgpu_no_remote_memory(ptr a
 ; GFX11-NEXT:    s_and_b32 s4, s3, 0xffff
 ; GFX11-NEXT:    s_not_b32 s3, s2
 ; GFX11-NEXT:    s_lshl_b32 s4, s4, s5
-; GFX11-NEXT:    s_mov_b32 s5, -1
 ; GFX11-NEXT:    s_mov_b32 s5, 0
 ; GFX11-NEXT:  .LBB136_1: ; %atomicrmw.start
 ; GFX11-NEXT:    ; =>This Inner Loop Header: Depth=1
@@ -9646,7 +9642,6 @@ define amdgpu_kernel void @atomic_sub_i8_soffset__amdgpu_no_remote_memory(ptr ad
 ; SI-NEXT:    s_lshl_b32 s8, s4, s5
 ; SI-NEXT:    s_waitcnt lgkmcnt(0)
 ; SI-NEXT:    v_mov_b32_e32 v1, s9
-; SI-NEXT:    s_mov_b64 s[4:5], -1
 ; SI-NEXT:    s_mov_b64 s[4:5], 0
 ; SI-NEXT:  .LBB137_1: ; %atomicrmw.start
 ; SI-NEXT:    ; =>This Inner Loop Header: Depth=1
@@ -9685,11 +9680,10 @@ define amdgpu_kernel void @atomic_sub_i8_soffset__amdgpu_no_remote_memory(ptr ad
 ; VI-NEXT:    s_lshl_b32 s3, s3, 3
 ; VI-NEXT:    s_lshl_b32 s6, 0xff, s3
 ; VI-NEXT:    s_and_b32 s2, s2, 0xff
-; VI-NEXT:    s_waitcnt lgkmcnt(0)
-; VI-NEXT:    v_mov_b32_e32 v1, s4
-; VI-NEXT:    s_mov_b64 s[4:5], -1
 ; VI-NEXT:    s_not_b32 s7, s6
 ; VI-NEXT:    s_lshl_b32 s8, s2, s3
+; VI-NEXT:    s_waitcnt lgkmcnt(0)
+; VI-NEXT:    v_mov_b32_e32 v1, s4
 ; VI-NEXT:    s_mov_b32 s3, 0xf000
 ; VI-NEXT:    s_mov_b32 s2, -1
 ; VI-NEXT:    s_mov_b64 s[4:5], 0
@@ -9728,11 +9722,10 @@ define amdgpu_kernel void @atomic_sub_i8_soffset__amdgpu_no_remote_memory(ptr ad
 ; GFX9-NEXT:    s_load_dword s7, s[0:1], 0x0
 ; GFX9-NEXT:    s_and_b32 s3, s3, 3
 ; GFX9-NEXT:    s_lshl_b32 s3, s3, 3
-; GFX9-NEXT:    s_and_b32 s2, s2, 0xff
 ; GFX9-NEXT:    s_lshl_b32 s4, 0xff, s3
-; GFX9-NEXT:    s_lshl_b32 s6, s2, s3
-; GFX9-NEXT:    s_mov_b64 s[2:3], -1
+; GFX9-NEXT:    s_and_b32 s2, s2, 0xff
 ; GFX9-NEXT:    s_not_b32 s5, s4
+; GFX9-NEXT:    s_lshl_b32 s6, s2, s3
 ; GFX9-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX9-NEXT:    v_mov_b32_e32 v1, s7
 ; GFX9-NEXT:    s_mov_b64 s[2:3], 0
@@ -9776,7 +9769,6 @@ define amdgpu_kernel void @atomic_sub_i8_soffset__amdgpu_no_remote_memory(ptr ad
 ; GFX11-NEXT:    s_and_b32 s4, s3, 0xff
 ; GFX11-NEXT:    s_not_b32 s3, s2
 ; GFX11-NEXT:    s_lshl_b32 s4, s4, s5
-; GFX11-NEXT:    s_mov_b32 s5, -1
 ; GFX11-NEXT:    s_mov_b32 s5, 0
 ; GFX11-NEXT:  .LBB137_1: ; %atomicrmw.start
 ; GFX11-NEXT:    ; =>This Inner Loop Header: Depth=1
