@@ -767,7 +767,6 @@ define amdgpu_ps float @test_wwm6_loop() {
 ; GFX9-W64-NEXT:    s_waitcnt vmcnt(0)
 ; GFX9-W64-NEXT:    s_mov_b64 exec, s[0:1]
 ; GFX9-W64-NEXT:    v_mbcnt_lo_u32_b32 v0, -1, 0
-; GFX9-W64-NEXT:    s_mov_b64 s[0:1], -1
 ; GFX9-W64-NEXT:    v_mbcnt_hi_u32_b32 v3, -1, v0
 ; GFX9-W64-NEXT:    s_mov_b64 s[0:1], 0
 ; GFX9-W64-NEXT:  .LBB17_1: ; %loop
@@ -798,7 +797,6 @@ define amdgpu_ps float @test_wwm6_loop() {
 ; GFX10-W32-NEXT:    s_waitcnt vmcnt(0)
 ; GFX10-W32-NEXT:    s_mov_b32 exec_lo, s0
 ; GFX10-W32-NEXT:    v_mbcnt_lo_u32_b32 v0, -1, 0
-; GFX10-W32-NEXT:    s_mov_b32 s0, -1
 ; GFX10-W32-NEXT:    s_mov_b32 s0, 0
 ; GFX10-W32-NEXT:    v_mbcnt_hi_u32_b32 v3, -1, v0
 ; GFX10-W32-NEXT:  .LBB17_1: ; %loop
@@ -1245,7 +1243,6 @@ define amdgpu_ps float @test_strict_wqm6_loop() {
 ; GFX9-W64-NEXT:    s_waitcnt vmcnt(0)
 ; GFX9-W64-NEXT:    s_mov_b64 exec, s[0:1]
 ; GFX9-W64-NEXT:    v_mbcnt_lo_u32_b32 v0, -1, 0
-; GFX9-W64-NEXT:    s_mov_b64 s[0:1], -1
 ; GFX9-W64-NEXT:    v_mbcnt_hi_u32_b32 v3, -1, v0
 ; GFX9-W64-NEXT:    s_mov_b64 s[0:1], 0
 ; GFX9-W64-NEXT:  .LBB25_1: ; %loop
@@ -1279,7 +1276,6 @@ define amdgpu_ps float @test_strict_wqm6_loop() {
 ; GFX10-W32-NEXT:    s_waitcnt vmcnt(0)
 ; GFX10-W32-NEXT:    s_mov_b32 exec_lo, s0
 ; GFX10-W32-NEXT:    v_mbcnt_lo_u32_b32 v0, -1, 0
-; GFX10-W32-NEXT:    s_mov_b32 s0, -1
 ; GFX10-W32-NEXT:    s_mov_b32 s0, 0
 ; GFX10-W32-NEXT:    v_mbcnt_hi_u32_b32 v3, -1, v0
 ; GFX10-W32-NEXT:  .LBB25_1: ; %loop
@@ -2675,7 +2671,6 @@ define amdgpu_ps float @test_strict_wwm6_loop() {
 ; GFX9-W64-NEXT:    s_waitcnt vmcnt(0)
 ; GFX9-W64-NEXT:    s_mov_b64 exec, s[0:1]
 ; GFX9-W64-NEXT:    v_mbcnt_lo_u32_b32 v0, -1, 0
-; GFX9-W64-NEXT:    s_mov_b64 s[0:1], -1
 ; GFX9-W64-NEXT:    v_mbcnt_hi_u32_b32 v3, -1, v0
 ; GFX9-W64-NEXT:    s_mov_b64 s[0:1], 0
 ; GFX9-W64-NEXT:  .LBB47_1: ; %loop
@@ -2706,7 +2701,6 @@ define amdgpu_ps float @test_strict_wwm6_loop() {
 ; GFX10-W32-NEXT:    s_waitcnt vmcnt(0)
 ; GFX10-W32-NEXT:    s_mov_b32 exec_lo, s0
 ; GFX10-W32-NEXT:    v_mbcnt_lo_u32_b32 v0, -1, 0
-; GFX10-W32-NEXT:    s_mov_b32 s0, -1
 ; GFX10-W32-NEXT:    s_mov_b32 s0, 0
 ; GFX10-W32-NEXT:    v_mbcnt_hi_u32_b32 v3, -1, v0
 ; GFX10-W32-NEXT:  .LBB47_1: ; %loop
