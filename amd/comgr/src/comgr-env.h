@@ -11,6 +11,8 @@
 
 #include "llvm/ADT/StringRef.h"
 
+#include <string>
+
 namespace COMGR {
 namespace env {
 
@@ -32,6 +34,10 @@ bool needTimeStatistics();
 /// If environment variable LLVM_PATH is set, return the environment variable,
 /// otherwise return the default LLVM path.
 llvm::StringRef getLLVMPath();
+
+/// Return the clang binary path used by Comgr's in-process driver and
+/// resource-dir VFS construction.
+std::string getClangBinaryPath();
 
 /// If environment variable AMD_COMGR_CACHE_POLICY is set, return the
 /// environment variable, otherwise return empty

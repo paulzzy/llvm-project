@@ -14,7 +14,13 @@
 
 #include "comgr-env.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/VirtualFileSystem.h"
+
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
 
 using namespace llvm;
 
@@ -67,6 +73,45 @@ bool shouldEmitVerboseLogs() {
 llvm::StringRef getLLVMPath() {
   static const char *EnvLLVMPath = std::getenv("LLVM_PATH");
   return EnvLLVMPath;
+}
+
+// Probe whether path P names a clang binary whose derived resource directory
+// exists on disk. The binary itself need not exist; clang's Driver only uses
+// the path to derive the resource dir.
+static bool probeClangResourceDir(StringRef P) {
+  SmallString<256> ResourceDir(
+      sys::path::parent_path(sys::path::parent_path(P)));
+  sys::path::append(ResourceDir, "lib", "clang");
+  return sys::fs::is_directory(ResourceDir);
+}
+
+std::string getClangBinaryPath() {
+  static const std::string Cached = []() -> std::string {
+    const char *EnvLLVMPath = std::getenv("LLVM_PATH");
+    if (EnvLLVMPath && StringRef(EnvLLVMPath) != "")
+      return (Twine(EnvLLVMPath) + "/bin/clang").str();
+
+#ifndef _WIN32
+    Dl_info Info;
+    if (dladdr(reinterpret_cast<void *>(&getClangBinaryPath), &Info) &&
+        Info.dli_fname) {
+      StringRef SoDir = sys::path::parent_path(Info.dli_fname);
+
+      SmallString<256> RocmLayout(sys::path::parent_path(SoDir));
+      sys::path::append(RocmLayout, "llvm", "bin", "clang");
+      if (probeClangResourceDir(RocmLayout))
+        return std::string(RocmLayout);
+
+      SmallString<256> StandardLayout(sys::path::parent_path(SoDir));
+      sys::path::append(StandardLayout, "bin", "clang");
+      if (probeClangResourceDir(StandardLayout))
+        return std::string(StandardLayout);
+    }
+#endif
+
+    return std::string("/bin/clang");
+  }();
+  return Cached;
 }
 
 StringRef getCachePolicy() {
