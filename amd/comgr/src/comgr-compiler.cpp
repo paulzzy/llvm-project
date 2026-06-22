@@ -1031,8 +1031,29 @@ amd_comgr_status_t AMDGPUCompiler::removeTmpDirs() {
 #endif
 }
 
-// Probe a common libc++ or libstdc++ include root.
-static bool probeCxxHeadersUnder(StringRef Root, std::string *FoundPath) {
+enum class CxxStdlib { Default, Libcxx, Libstdcxx };
+
+static CxxStdlib getRequestedCxxStdlib(ArrayRef<const char *> Argv) {
+  CxxStdlib Result = CxxStdlib::Default;
+  for (size_t I = 0; I < Argv.size(); ++I) {
+    StringRef A(Argv[I] ? Argv[I] : "");
+    StringRef Value;
+    if (A.starts_with("-stdlib="))
+      Value = A.drop_front(StringRef("-stdlib=").size());
+    else if (A == "-stdlib" && I + 1 < Argv.size() && Argv[I + 1])
+      Value = Argv[++I];
+    else
+      continue;
+
+    if (Value == "libc++")
+      Result = CxxStdlib::Libcxx;
+    else if (Value == "libstdc++")
+      Result = CxxStdlib::Libstdcxx;
+  }
+  return Result;
+}
+
+static bool probeLibcxxHeadersUnder(StringRef Root, std::string *FoundPath) {
   auto Hit = [&](const Twine &P) {
     if (FoundPath)
       *FoundPath = P.str();
@@ -1043,6 +1064,15 @@ static bool probeCxxHeadersUnder(StringRef Root, std::string *FoundPath) {
   sys::path::append(LibCxx, "include", "c++", "v1", "__config_site");
   if (sys::fs::exists(LibCxx))
     return Hit(LibCxx);
+  return false;
+}
+
+static bool probeLibstdcxxHeadersUnder(StringRef Root, std::string *FoundPath) {
+  auto Hit = [&](const Twine &P) {
+    if (FoundPath)
+      *FoundPath = P.str();
+    return true;
+  };
 
   SmallString<256> CxxRoot(Root);
   sys::path::append(CxxRoot, "include", "c++");
@@ -1051,12 +1081,21 @@ static bool probeCxxHeadersUnder(StringRef Root, std::string *FoundPath) {
        DI.increment(EC)) {
     if (DI->type() != sys::fs::file_type::directory_file)
       continue;
+    if (sys::path::filename(DI->path()) == "v1")
+      continue;
     SmallString<256> Probe(DI->path());
     sys::path::append(Probe, "cstddef");
     if (sys::fs::exists(Probe))
       return Hit(Probe);
   }
   return false;
+}
+
+static bool probeCxxHeadersUnder(StringRef Root, CxxStdlib Stdlib,
+                                 std::string *FoundPath) {
+  if (Stdlib == CxxStdlib::Libcxx)
+    return probeLibcxxHeadersUnder(Root, FoundPath);
+  return probeLibstdcxxHeadersUnder(Root, FoundPath);
 }
 
 // Probe common system C++ header locations, including --sysroot and
@@ -1079,20 +1118,22 @@ static bool detectSystemCxxHeadersOnDisk(ArrayRef<const char *> Argv,
   }
   if (SysRoot.empty())
     SysRoot = "/";
+  CxxStdlib Stdlib = getRequestedCxxStdlib(Argv);
 
   // GCC toolchain wins if specified; that is what clang's driver would
   // resolve C++ headers under.
-  if (!GccToolchain.empty() && probeCxxHeadersUnder(GccToolchain, FoundPath))
+  if (!GccToolchain.empty() &&
+      probeCxxHeadersUnder(GccToolchain, Stdlib, FoundPath))
     return true;
 
   SmallString<256> SysUsr(SysRoot);
   sys::path::append(SysUsr, "usr");
-  if (probeCxxHeadersUnder(SysUsr, FoundPath))
+  if (probeCxxHeadersUnder(SysUsr, Stdlib, FoundPath))
     return true;
 
   SmallString<256> SysUsrLocal(SysRoot);
   sys::path::append(SysUsrLocal, "usr", "local");
-  if (probeCxxHeadersUnder(SysUsrLocal, FoundPath))
+  if (probeCxxHeadersUnder(SysUsrLocal, Stdlib, FoundPath))
     return true;
 
   return false;
@@ -1156,10 +1197,25 @@ amd_comgr_status_t AMDGPUCompiler::processFile(DataObject *Input,
     Argv.push_back("-nogpulib");
   }
 
+  // Parse these before embedded-header detection so --sysroot,
+  // --gcc-toolchain, and -nostdinc++ affect the decision. They are appended to
+  // the actual driver invocation later to preserve the existing option order.
+  SmallVector<const char *, 8> EnvArgv;
+  StringRef EnvOptions = env::getDriverOptionsAppend();
+  if (!EnvOptions.empty()) {
+    SmallVector<StringRef, 8> Options;
+    EnvOptions.split(Options, ' ', /*MaxSplit=*/-1, /*KeepEmpty=*/false);
+    for (StringRef Opt : Options)
+      EnvArgv.push_back(Saver.save(Opt).data());
+  }
+
+  SmallVector<const char *, 128> DetectionArgv = Argv;
+  DetectionArgv.append(EnvArgv.begin(), EnvArgv.end());
+
   // Inject embedded libc++ only when system C++ headers are unavailable; the
   // embedded set is partial and must not be mixed with host libstdc++/libc++.
   if (HasEmbeddedHeaders && getLanguage() == AMD_COMGR_LANGUAGE_HIP &&
-      !shouldSkipEmbeddedHeaders(Argv)) {
+      !shouldSkipEmbeddedHeaders(DetectionArgv)) {
     SmallString<256> LibcxxPath(env::getLLVMPath());
     sys::path::append(LibcxxPath, "include", "c++", "v1");
     Argv.push_back("-idirafter");
@@ -1183,13 +1239,7 @@ amd_comgr_status_t AMDGPUCompiler::processFile(DataObject *Input,
 
   // Append options from AMD_COMGR_DRIVER_OPTIONS_APPEND environment variable.
   // Options are space-separated and appended after all other options.
-  StringRef EnvOptions = env::getDriverOptionsAppend();
-  if (!EnvOptions.empty()) {
-    SmallVector<StringRef, 8> Options;
-    EnvOptions.split(Options, ' ', /*MaxSplit=*/-1, /*KeepEmpty=*/false);
-    for (StringRef Opt : Options)
-      Argv.push_back(Saver.save(Opt).data());
-  }
+  Argv.append(EnvArgv.begin(), EnvArgv.end());
 
   Argv.push_back(InputFilePath);
 
