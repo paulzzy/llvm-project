@@ -1,5 +1,5 @@
-; RUN: llc -amdgpu-late-wave-transform=1 -mtriple=amdgcn-amd-amdhsa -mcpu=gfx90a -mattr=+wavefrontsize64 -verify-machineinstrs -stop-after=finalize-isel < %s | FileCheck -check-prefixes=CHECK %s
-; RUN: llc -O0 -amdgpu-late-wave-transform=1 -mtriple=amdgcn-amd-amdhsa -mcpu=gfx90a -mattr=+wavefrontsize64 -verify-machineinstrs -stop-after=finalize-isel < %s | FileCheck -check-prefixes=OPT-O0 %s
+; RUN: llc -amdgpu-late-wave-transform=1 -mtriple=amdgcn-amd-amdhsa -mcpu=gfx90a -mattr=+wavefrontsize64 -verify-machineinstrs -stop-after=finalize-isel < %s | FileCheck -check-prefixes=GCN %s
+; RUN: llc -O0 -amdgpu-late-wave-transform=1 -mtriple=amdgcn-amd-amdhsa -mcpu=gfx90a -mattr=+wavefrontsize64 -verify-machineinstrs -stop-after=finalize-isel < %s | FileCheck -check-prefixes=GCN-O0 %s
 
 ; Test the thread-CFG BRCOND NOT-fold in the wave-transform flow.
 ; The fold lives in SITargetLowering::performBrcondCombine
