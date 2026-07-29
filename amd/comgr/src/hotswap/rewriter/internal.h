@@ -68,6 +68,7 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/TargetParser/AMDGPUOperandInfo.h"
 
 namespace COMGR {
 namespace hotswap {
@@ -317,6 +318,10 @@ struct Trampoline {
   // use safe branch islands and, when a dead register pair is available, the
   // scratch-backed gfx12 set-PC sequence. Neither executes s_add_pc_i64.
   bool Long = false;
+  // Required tensor wrappers are rechecked after final pool layout because
+  // earlier long-trampoline island dwords can shift a later short return out
+  // of range.
+  bool RequiresFinalLayoutRouting = false;
   bool UsesSetPCBack = false;
   unsigned LongBranchSgprBase = 0;
   // When numbered SGPRs are exhausted, a far edge may use VCC after proving
@@ -982,6 +987,39 @@ LLVMState initLLVM(const TargetIdentifier &TI);
 llvm::SmallVector<uint8_t> assembleSingleInst(llvm::StringRef AsmStr,
                                               const LLVMState &LS);
 
+/// Parse one non-empty assembly source line to exactly one MCInst.
+std::optional<llvm::MCInst> parseSingleMCInst(llvm::StringRef AsmStr,
+                                              const LLVMState &LS);
+
+/// Encode one MCInst through the target MCCodeEmitter.
+llvm::SmallVector<uint8_t> encodeInstruction(const llvm::MCInst &Inst,
+                                             const LLVMState &LS);
+
+/// Encode \p Inst and append its bytes to \p Bytes.
+[[nodiscard]] bool
+appendEncodedInstruction(llvm::SmallVectorImpl<uint8_t> &Bytes,
+                         const llvm::MCInst &Inst, const LLVMState &LS);
+
+/// Assemble \p AsmStr and append the encoded instruction sequence to \p Bytes.
+[[nodiscard]] bool
+appendAssembledInstructions(llvm::SmallVectorImpl<uint8_t> &Bytes,
+                            llvm::StringRef AsmStr, const LLVMState &LS);
+
+/// Return the validated MCInst index for an AMDGPU named operand.
+std::optional<unsigned> getNamedOperandIndex(const llvm::MCInst &Inst,
+                                             llvm::AMDGPU::MCNamedOperand Name);
+
+/// Copy one AMDGPU named operand from \p Source to \p Destination.
+[[nodiscard]] bool copyNamedOperand(const llvm::MCInst &Source,
+                                    llvm::MCInst &Destination,
+                                    llvm::AMDGPU::MCNamedOperand Name,
+                                    bool Required);
+
+/// Preserve or clear the source-C modifier state while translating a WMMA.
+[[nodiscard]] bool copyWmmaSourceCModifiers(const llvm::MCInst &Source,
+                                            llvm::MCInst &Destination,
+                                            bool ClearSourceC);
+
 /// Assemble a newline-separated instruction sequence, returning its encoded
 /// bytes.
 llvm::SmallVector<uint8_t> assembleInstructions(llvm::StringRef AsmStr,
@@ -1390,6 +1428,41 @@ struct PatchContext {
   bool HasUnresolvedPendingTrampoline = false;
 };
 
+/// One node in the all-path proof that an incoming physical VGPR value is
+/// killed before it can be observed. Opaque nodes and unsafe exits observe
+/// every still-live value conservatively. A safe terminal (s_endpgm or the
+/// patched site on a later loop iteration) observes none.
+struct ForwardVgprProofNode {
+  llvm::BitVector Uses;
+  llvm::BitVector FullDefs;
+  llvm::SmallVector<size_t, 2> Successors;
+  bool Opaque = false;
+  bool HasUnsafeExit = false;
+  bool SafeTerminal = false;
+
+  explicit ForwardVgprProofNode(unsigned MaxVgprs = 0)
+      : Uses(MaxVgprs), FullDefs(MaxVgprs) {}
+};
+
+/// Return physical VGPR values whose incoming contents are killed on every
+/// path before a use, opaque instruction, unsafe exit, or non-killing cycle.
+/// Malformed graph inputs fail closed with std::nullopt.
+std::optional<llvm::BitVector>
+computeForwardDeadVgprs(llvm::ArrayRef<ForwardVgprProofNode> Nodes,
+                        size_t EntryNode, unsigned MaxVgprs);
+
+/// True when [Base, Base + Width) is non-empty, within MaxVgprs, and does not
+/// cross one of gfx1250's 256-register physical VGPR banks.
+bool physicalVgprRangeFitsOneBank(unsigned Base, unsigned Width,
+                                  unsigned MaxVgprs);
+
+/// Return true when \p Reg or one of its aliases belongs to a physical vector
+/// register file. Physical-VGPR proofs use this after encoded-range recovery
+/// fails: a true result must invalidate the proof rather than silently treating
+/// the operand as scalar.
+bool isVectorRegisterOrAlias(llvm::MCRegister Reg,
+                             const llvm::MCRegisterInfo &MRI);
+
 enum class VgprMsbOperand : unsigned {
   Src0 = 0,
   Src1 = 2,
@@ -1412,6 +1485,13 @@ void ensureVgprMsbModes(PatchContext &Ctx);
 /// prevents object-wide analysis.
 [[nodiscard]] std::optional<unsigned>
 getLocallyEstablishedVgprMsbMode(PatchContext &Ctx, size_t Idx);
+
+/// Apply one instruction's persistent VGPR-MSB transfer to an exact packed
+/// mode. Returns VgprMsbUnknown when the incoming state or the instruction's
+/// MODE effect is ambiguous; an exact setter can recover an exact mode.
+int16_t transferExactVgprMsbMode(int16_t Incoming,
+                                 const InternalDecodedInst &DI,
+                                 const LLVMState &LS);
 
 unsigned getVgprMsbBank(unsigned Mode, VgprMsbOperand Operand);
 void setVgprMsbBank(unsigned &Mode, VgprMsbOperand Operand, unsigned Bank);
@@ -1530,6 +1610,16 @@ isRegisterDefinitelyDeadAtContinuation(PatchContext &Ctx, uint64_t InstOffset,
                                        llvm::MCRegister Register);
 
 // -- Trampoline emission helpers (defined in b0a0.cpp) ----------
+
+/// Re-evaluate marked required short trampolines against the final pool
+/// layout, including the branch-island dword reserved after every long
+/// trampoline. Marked entries whose forward or return edge no longer fits
+/// become registerless long trampolines so the ordinary island planner can
+/// route them.
+std::optional<unsigned>
+promoteOutOfRangeRequiredShortTrampolines(std::vector<Trampoline> &Trampolines,
+                                          uint64_t PoolBaseOffset,
+                                          const LLVMState &LS);
 
 [[nodiscard]] bool emitToNopSled(PatchContext &Ctx, NopSled &Sled,
                                  uint64_t InstOffset, uint32_t InstSize,
